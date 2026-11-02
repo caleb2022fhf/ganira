@@ -2,13 +2,13 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-// In-Memory Global Database (Izanikwa n'abakoresha benshi batandukanye)
+// In-Memory Global Database
 let users = [];
 let posts = [
-  { id: 1, author: "Ganira Bot", content: "Murakaza neza kuri Ganira! Shakisha inshuti, ufe Stories n'ama Posts hano.", time: new Date().toLocaleTimeString(), likes: 3 }
+  { id: 1, author: "Ganira Bot", content: "Murakaza neza kuri Ganira! Shakisha inshuti, ufe Stories, Posts, n'uburyo bw'ubwenge buhangano (AI Mode)!", time: new Date().toLocaleTimeString(), likes: 5 }
 ];
 let stories = [
-  { id: 1, author: "Ganira Bot", content: "🔥 Ganira story is live!", time: "Saa kumi" }
+  { id: 1, author: "Ganira Bot", content: "🔥 Try out the new AI Mode feature!", time: "Saa kumi" }
 ];
 let messages = [
   { sender: "Ganira Bot", message: "Muraho! Mwaze neza muri Chat zone.", time: new Date().toLocaleTimeString() }
@@ -21,17 +21,17 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ganira - Social Network</title>
+        <title>Ganira - AI & Social Network</title>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-[#0b0c10] text-gray-100 min-h-screen flex flex-col font-sans">
 
-        <!-- AUTH SCREEN (LOGIN & REGISTER) -->
+        <!-- AUTH SCREEN -->
         <div id="auth-container" class="flex items-center justify-center h-screen px-4">
             <div class="bg-[#121317] border border-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 <div class="text-center mb-6">
                     <h1 class="text-4xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500">GANIRA</h1>
-                    <p class="text-gray-400 text-xs mt-2 uppercase tracking-widest">Connect • Post • Story • Chat</p>
+                    <p class="text-gray-400 text-xs mt-2 uppercase tracking-widest">Connect • Feed • AI Assistant</p>
                 </div>
                 
                 <div id="error-msg" class="bg-red-900/40 border border-red-500 text-red-200 text-xs p-3 rounded-xl mb-4 text-center hidden"></div>
@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
                         <label class="block text-gray-400 text-xs font-bold uppercase mb-1">Password</label>
                         <input type="password" id="password" class="w-full bg-[#1c1d22] border border-gray-700 p-3 rounded-xl text-white focus:outline-none focus:border-purple-500 transition text-sm" required>
                     </div>
-                    <button type="submit" id="auth-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3.5 rounded-xl font-bold hover:opacity-95 transition shadow-lg shadow-purple-900/30 text-sm">Log In</button>
+                    <button type="submit" id="auth-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3.5 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm">Log In</button>
                 </form>
 
                 <div class="text-center text-xs text-gray-400 mt-6 border-t border-gray-800/80 pt-4">
@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
             </div>
         </div>
 
-        <!-- MAIN SOCIAL APP SCREEN -->
+        <!-- MAIN APP SCREEN -->
         <div id="main-screen" class="hidden min-h-screen flex flex-col bg-[#0b0c10]">
             <!-- TOP NAVBAR -->
             <header class="sticky top-0 z-50 bg-[#121317]/90 backdrop-blur-md border-b border-gray-800 px-6 py-3 flex justify-between items-center">
@@ -69,11 +69,10 @@ app.get('/', (req, res) => {
 
             <main class="flex-1 max-w-xl mx-auto w-full p-4 space-y-6">
                 
-                <!-- STORIES BAR (Instagram Style) -->
+                <!-- STORIES BAR -->
                 <div class="bg-[#121317] border border-gray-800 p-4 rounded-2xl">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Stories</h3>
                     <div class="flex items-center gap-4 overflow-x-auto pb-2" id="stories-container">
-                        <!-- Story Add Button -->
                         <div onclick="addStoryPrompt()" class="cursor-pointer shrink-0 flex flex-col items-center gap-1">
                             <div class="w-14 h-14 rounded-full border-2 border-dashed border-purple-500 flex items-center justify-center bg-[#1c1d22] hover:scale-105 transition">
                                 <span class="text-purple-400 text-xl font-bold">+</span>
@@ -83,7 +82,28 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
 
-                <!-- CREATE POST BOX (Facebook Feed Style) -->
+                <!-- AI MODE ASSISTANT SECTION -->
+                <div class="bg-gradient-to-r from-purple-900/30 via-[#121317] to-cyan-900/30 border border-purple-500/40 p-4 rounded-2xl shadow-xl space-y-3">
+                    <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                        <h3 class="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 uppercase tracking-wider flex items-center gap-2">
+                            🤖 AI Assistant Mode
+                        </h3>
+                        <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-semibold border border-purple-500/30">Online</span>
+                    </div>
+
+                    <div id="ai-chat-box" class="h-40 overflow-y-auto space-y-2 p-1 text-xs">
+                        <div class="bg-[#1c1d22] border border-purple-500/30 p-2.5 rounded-xl text-purple-200">
+                            <strong>AI Assistant:</strong> Muraho! Ndi AI ya Ganira. Mbaza ikibazo cyose wifuza! 🚀
+                        </div>
+                    </div>
+
+                    <form id="ai-form" class="flex gap-2">
+                        <input type="text" id="ai-input" placeholder="Baza AI ikintu cyose..." class="flex-1 bg-[#1c1d22] border border-purple-500/40 text-xs text-white p-2.5 rounded-xl focus:outline-none focus:border-cyan-400" required>
+                        <button type="submit" class="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:opacity-90 transition">Baza</button>
+                    </form>
+                </div>
+
+                <!-- CREATE POST BOX -->
                 <div class="bg-[#121317] border border-gray-800 p-4 rounded-2xl space-y-3">
                     <textarea id="post-input" placeholder="Urimu gutekereza iki ariko? Tangaza Post..." class="w-full bg-[#1c1d22] border border-gray-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-500 resize-none h-20"></textarea>
                     <div class="flex justify-between items-center border-t border-gray-800/80 pt-3">
@@ -93,16 +113,12 @@ app.get('/', (req, res) => {
                 </div>
 
                 <!-- FEED POSTS -->
-                <div class="space-y-4" id="feed-container">
-                    <!-- Posts navigate here -->
-                </div>
+                <div class="space-y-4" id="feed-container"></div>
 
-                <!-- LIVE CHAT BOX (Messenger Style) -->
+                <!-- LIVE CHAT BOX -->
                 <div class="bg-[#121317] border border-gray-800 rounded-2xl p-4 space-y-3">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-800 pb-2">Live Chat💬</h3>
-                    <div id="messages-container" class="h-48 overflow-y-auto space-y-2 p-1">
-                        <!-- Chat messages -->
-                    </div>
+                    <div id="messages-container" class="h-40 overflow-y-auto space-y-2 p-1"></div>
                     <form id="chat-form" class="flex gap-2">
                         <input type="text" id="chat-message" placeholder="Andika muri live chat..." class="flex-1 bg-[#1c1d22] border border-gray-700 text-xs text-white p-2.5 rounded-xl focus:outline-none focus:border-purple-500" required>
                         <button type="submit" class="bg-purple-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-purple-700 transition">Ohereza</button>
@@ -121,7 +137,7 @@ app.get('/', (req, res) => {
 
             function toggleAuthMode() {
                 isLoginMode = !isLoginMode;
-                document.getElementById('auth-title')?.setHTML?.(isLoginMode ? "Injira muri Ganira" : "Wiyandikishe kuri Ganira");
+                document.getElementById('auth-title').innerText = isLoginMode ? "Injira muri Ganira" : "Wiyandikishe kuri Ganira";
                 document.getElementById('auth-btn').innerText = isLoginMode ? "Log In" : "Create Account";
                 document.getElementById('switch-text').innerText = isLoginMode ? "Nta konti ufite?" : "Ubusanzwe ufite konti?";
                 document.getElementById('switch-btn').innerText = isLoginMode ? "Create Account" : "Log In";
@@ -173,6 +189,38 @@ app.get('/', (req, res) => {
                 fetchStories();
                 fetchMessages();
             }
+
+            // AI CHAT LOGIC
+            document.getElementById('ai-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const input = document.getElementById('ai-input');
+                const prompt = input.value.trim();
+                if (!prompt) return;
+
+                const chatBox = document.getElementById('ai-chat-box');
+                chatBox.innerHTML += \`
+                    <div class="bg-gray-800 p-2 rounded-xl text-gray-200">
+                        <strong>\${currentUser}:</strong> \${prompt}
+                    </div>
+                \`;
+
+                input.value = '';
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                const res = await fetch('/api/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await res.json();
+
+                chatBox.innerHTML += \`
+                    <div class="bg-[#1c1d22] border border-purple-500/30 p-2.5 rounded-xl text-purple-200">
+                        <strong>AI Assistant:</strong> \${data.reply}
+                    </div>
+                \`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
 
             // POSTS LOGIC
             async function fetchPosts() {
@@ -283,6 +331,23 @@ app.get('/', (req, res) => {
     </body>
     </html>
   `);
+});
+
+// AI RESPONSES ENDPOINT
+app.post('/api/ai', (req, res) => {
+  const { prompt } = req.body;
+  let reply = "Urakoze ku kibazo cyawe! Ndi AI ya Ganira. Niteguye kugufasha ku kintu cyose wifuza.";
+  
+  const text = prompt.toLowerCase();
+  if (text.includes("amukuru") || text.includes("muraho") || text.includes("hello")) {
+    reply = "Ni meza cyane! Nisanzure muri Ganira. Urimu kugenda ute uyu munsi?";
+  } else if (text.includes("izina") || text.includes("name") || text.includes("uri nde")) {
+    reply = "Ndi Ganira AI Assistant, umufasha wawe muri ubu rubuga rwa Ganira!";
+  } else if (text.includes("code") || text.includes("program")) {
+    reply = "Gukora code ni ibintu byiza cyane! Niba ufite ikibazo cya code, nze kugufasha kugi kora.";
+  }
+
+  setTimeout(() => res.json({ reply }), 500);
 });
 
 // APIs
