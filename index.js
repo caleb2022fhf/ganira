@@ -5,41 +5,17 @@ const app = express();
 app.use(express.json());
 
 // Guhuza na Turso Database
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
-
-// Gukora tables zikenewe mu gihe zitarabaho
-async function initDB() {
-  try {
-    // Table y'abakoresha (Users)
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS ganira_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // Table y'ubutumwa (Messages)
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS ganira_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender TEXT NOT NULL,
-        message TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log("Database & tables initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing database:", error);
+function getDb() {
+  if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+    throw new Error("TURSO_DATABASE_URL cyangwa TURSO_AUTH_TOKEN zibuze muri Environment Variables za Vercel!");
   }
+  return createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
 }
-initDB();
 
-// 1. FRONTEND UI (Urupapuro rwa Login, Register, na Chat)
+// 1. FRONTEND UI (Login, Register & Chat)
 app.get('/', async (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -47,12 +23,12 @@ app.get('/', async (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ganira - Auth & Chat</title>
+        <title>Ganira - Chat App</title>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-100 h-screen flex flex-col justify-between">
 
-        <!-- UMUGABANWA W'INDIRI / AUTH SCREEN -->
+        <!-- AUTH SCREEN -->
         <div id="auth-container" class="flex items-center justify-center h-screen">
             <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
                 <h2 id="auth-title" class="text-2xl font-bold text-center text-indigo-600 mb-6">Injira muri Ganira</h2>
@@ -78,7 +54,7 @@ app.get('/', async (req, res) => {
             </div>
         </div>
 
-        <!-- UMUGABANWA W'IKIGANIRO / CHAT SCREEN (Hakingwa kugeza ubwo winjiye) -->
+        <!-- CHAT SCREEN -->
         <div id="chat-screen" class="hidden h-screen flex flex-col">
             <header class="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md">
                 <h1 class="font-bold text-xl">Ganira Chat App 💬</h1>
@@ -163,6 +139,8 @@ app.get('/', async (req, res) => {
                     const messages = await response.json();
                     const container = document.getElementById('messages-container');
                     
+                    if (!Array.isArray(messages)) return;
+                    
                     if (messages.length === 0) {
                         container.innerHTML = '<p class="text-gray-500 text-center">Nta butumwa burabaho. Ba uwambere wo kohereza!</p>';
                         return;
@@ -170,7 +148,7 @@ app.get('/', async (req, res) => {
 
                     container.innerHTML = messages.map(msg => \`
                         <div class="bg-white p-3 rounded-lg shadow-sm border">
-                            <span class="font-bold text-indigo-600">\${msg.sender}</span>: 
+                            <span class="font-bold text-indigo-600">\${msg.email || msg.sender}</span>: 
                             <span class="text-gray-800">\${msg.message}</span>
                             <span class="text-xs text-gray-400 block mt-1">\${new Date(msg.created_at).toLocaleTimeString()}</span>
                         </div>
@@ -203,24 +181,36 @@ app.get('/', async (req, res) => {
 
 // 2. API: SIGNUP (Kurema Konti)
 app.post('/api/signup', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: "Email na password birakenewe" });
-
   try {
+    const db = getDb();
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Email na password birakenewe" });
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS ganira_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     await db.execute({
       sql: "INSERT INTO ganira_users (email, password) VALUES (?, ?)",
       args: [email, password]
     });
     res.status(201).json({ success: true });
   } catch (error) {
-    res.status(400).json({ error: "Iyi email yari isanzwe ikoreshwa cyangwa habaye ikibazo." });
+    res.status(400).json({ error: "Iyi email yari isanzwe ikoreshwa cyangwa habaye ikibazo: " + error.message });
   }
 });
 
 // 3. API: LOGIN (Kwinjira)
 app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
   try {
+    const db = getDb();
+    const { email, password } = req.body;
+    
     const result = await db.execute({
       sql: "SELECT * FROM ganira_users WHERE email = ? AND password = ?",
       args: [email, password]
@@ -239,6 +229,16 @@ app.post('/api/login', async (req, res) => {
 // 4. API: GET MESSAGES
 app.get('/api/messages', async (req, res) => {
   try {
+    const db = getDb();
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS ganira_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     const result = await db.execute("SELECT * FROM ganira_messages ORDER BY id ASC");
     res.json(result.rows);
   } catch (error) {
@@ -248,10 +248,11 @@ app.get('/api/messages', async (req, res) => {
 
 // 5. API: POST MESSAGE
 app.post('/api/messages', async (req, res) => {
-  const { sender, message } = req.body;
-  if (!sender || !message) return res.status(400).json({ error: "Sender and message are required" });
-
   try {
+    const db = getDb();
+    const { sender, message } = req.body;
+    if (!sender || !message) return res.status(400).json({ error: "Sender and message are required" });
+
     await db.execute({
       sql: "INSERT INTO ganira_messages (sender, message) VALUES (?, ?)",
       args: [sender, message]
