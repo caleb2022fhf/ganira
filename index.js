@@ -2,10 +2,10 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
-// Ububiko bw'agateganyo muri memory ya server (abakoresha n'ubutumwa)
+// Ububiko bw'agateganyo muri memory ya server
 let users = [];
 let messages = [
-  { sender: "Ganira Bot", message: "Muraho neza! Ikiganiro cyatangiye.", time: new Date().toLocaleTimeString() }
+  { sender: "Ganira Bot", message: "Muraho neza! Ikiganiro cyatangiye muri stail ya Instagram & Facebook.", time: new Date().toLocaleTimeString() }
 ];
 
 app.get('/', (req, res) => {
@@ -15,55 +15,61 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ganira - Login & Chat</title>
+        <title>Ganira - Social Dark UI</title>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
-    <body class="bg-gray-100 h-screen flex flex-col justify-between">
+    <body class="bg-[#0f0f0f] text-gray-100 h-screen flex flex-col justify-between font-sans">
 
-        <!-- AUTH SCREEN (LOGIN & REGISTER) -->
-        <div id="auth-container" class="flex items-center justify-center h-screen">
-            <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-                <h2 id="auth-title" class="text-2xl font-bold text-center text-indigo-600 mb-6">Injira muri Ganira</h2>
+        <!-- AUTH SCREEN (LOGIN & REGISTER - DARK STYLE) -->
+        <div id="auth-container" class="flex items-center justify-center h-screen px-4">
+            <div class="bg-[#18191a] border border-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+                <div class="text-center mb-6">
+                    <h1 class="text-3xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500">GANIRA</h1>
+                    <p class="text-gray-400 text-sm mt-1">Huha n'abandi mu buryo bugezweho</p>
+                </div>
                 
-                <div id="error-msg" class="text-red-500 text-sm mb-4 text-center hidden"></div>
+                <div id="error-msg" class="bg-red-900/50 border border-red-500 text-red-200 text-sm p-2 rounded-lg mb-4 text-center hidden"></div>
 
                 <form id="auth-form" class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                        <input type="email" id="email" class="w-full border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <label class="block text-gray-300 text-xs font-bold uppercase mb-1">Email cyangwa Izina</label>
+                        <input type="email" id="email" class="w-full bg-[#242526] border border-gray-700 p-3 rounded-xl text-white focus:outline-none focus:border-purple-500 transition" required>
                     </div>
                     <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                        <input type="password" id="password" class="w-full border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <label class="block text-gray-300 text-xs font-bold uppercase mb-1">Password</label>
+                        <input type="password" id="password" class="w-full bg-[#242526] border border-gray-700 p-3 rounded-xl text-white focus:outline-none focus:border-purple-500 transition" required>
                     </div>
-                    <button type="submit" id="auth-btn" class="w-full bg-indigo-600 text-white p-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Log In</button>
+                    <button type="submit" id="auth-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg shadow-purple-900/40">Log In</button>
                 </form>
 
-                <p class="text-center text-sm text-gray-600 mt-4">
+                <div class="text-center text-sm text-gray-400 mt-6 border-t border-gray-800 pt-4">
                     <span id="switch-text">Nta konti ufite?</span> 
-                    <button onclick="toggleAuthMode()" id="switch-btn" class="text-indigo-600 font-bold hover:underline ml-1">Create Account</button>
-                </p>
+                    <button onclick="toggleAuthMode()" id="switch-btn" class="text-purple-400 font-bold hover:underline ml-1">Create Account</button>
+                </div>
             </div>
         </div>
 
-        <!-- CHAT SCREEN (Hakingwa kugeza ubwo winjiye) -->
-        <div id="chat-screen" class="hidden h-screen flex flex-col justify-between">
-            <header class="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md">
-                <h1 class="font-bold text-xl">Ganira Chat App 💬</h1>
-                <div>
-                    <span id="user-email-display" class="text-sm mr-4 bg-indigo-700 py-1 px-3 rounded-full"></span>
-                    <button onclick="logout()" class="bg-red-500 text-sm px-3 py-1 rounded hover:bg-red-600 transition">Sohoka</button>
+        <!-- CHAT & SOCIAL FEED SCREEN -->
+        <div id="chat-screen" class="hidden h-screen flex flex-col justify-between bg-[#0f0f0f]">
+            <!-- Header (Facebook/Instagram Style Navbar) -->
+            <header class="bg-[#18191a] border-b border-gray-800 px-6 py-3 flex justify-between items-center shadow-md">
+                <h1 class="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500">GANIRA</h1>
+                <div class="flex items-center gap-4">
+                    <span id="user-email-display" class="text-xs bg-[#242526] border border-gray-700 text-purple-300 py-1.5 px-3 rounded-full font-medium"></span>
+                    <button onclick="logout()" class="bg-[#242526] hover:bg-red-600/20 hover:border-red-500 hover:text-red-400 border border-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded-xl transition font-semibold">Sohoka</button>
                 </div>
             </header>
 
-            <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 max-w-2xl mx-auto w-full">
+            <!-- Main Feed / Messages Container -->
+            <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-4 max-w-xl mx-auto w-full">
                 <!-- Ubutumwa buzajya buza hano -->
             </div>
 
-            <div class="bg-white border-t p-4 shadow-lg">
-                <form id="chat-form" class="max-w-2xl mx-auto flex gap-2">
-                    <input type="text" id="message" placeholder="Andika ubutumwa bwawe..." class="border p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                    <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Ohereza</button>
+            <!-- Input Box (Instagram/Facebook Messenger Style Footer) -->
+            <div class="bg-[#18191a] border-t border-gray-800 p-4 shadow-xl">
+                <form id="chat-form" class="max-w-xl mx-auto flex gap-3 items-center">
+                    <input type="text" id="message" placeholder="Andika ubutumwa cyangwa post yawe..." class="w-full bg-[#242526] border border-gray-700 text-white p-3 rounded-full px-4 focus:outline-none focus:border-purple-500 transition text-sm" required>
+                    <button type="submit" class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-95 transition shadow-lg text-sm shrink-0">Ohereza</button>
                 </form>
             </div>
         </div>
@@ -132,10 +138,15 @@ app.get('/', (req, res) => {
                     const container = document.getElementById('messages-container');
                     
                     container.innerHTML = data.map(msg => \`
-                        <div class="bg-white p-3 rounded-lg shadow-sm border">
-                            <span class="font-bold text-indigo-600">\${msg.sender}</span>: 
-                            <span class="text-gray-800">\${msg.message}</span>
-                            <span class="text-xs text-gray-400 block mt-1">\${msg.time}</span>
+                        <div class="bg-[#18191a] border border-gray-800 p-4 rounded-2xl shadow-md space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-sm text-purple-400 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                                    \${msg.sender}
+                                </span>
+                                <span class="text-[10px] text-gray-500">\${msg.time}</span>
+                            </div>
+                            <p class="text-gray-200 text-sm pl-4 border-l-2 border-purple-500/50">\${msg.message}</p>
                         </div>
                     \`).join('');
                     
