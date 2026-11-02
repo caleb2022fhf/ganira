@@ -1,19 +1,29 @@
 const express = require('express');
 const { createClient } = require('@libsql/client');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
 
-// Guhuza na Turso Database ukoresheje environment variables ziri kuri Vercel
+// Guhuza na Turso Database
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL,
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Gukora table ya database mu gihe itarabaho
+// Gukora tables zikenewe mu gihe zitarabaho
 async function initDB() {
   try {
+    // Table y'abakoresha (Users)
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS ganira_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Table y'ubutumwa (Messages)
     await db.execute(`
       CREATE TABLE IF NOT EXISTS ganira_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,14 +32,14 @@ async function initDB() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log("Database initialized successfully.");
+    console.log("Database & tables initialized successfully.");
   } catch (error) {
     console.error("Error initializing database:", error);
   }
 }
 initDB();
 
-// 1. FRONTEND UI (Urupapuro rugaragara iyo usuye link yawe)
+// 1. FRONTEND UI (Urupapuro rwa Login, Register, na Chat)
 app.get('/', async (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -37,30 +47,116 @@ app.get('/', async (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ganira - Chat App</title>
+        <title>Ganira - Auth & Chat</title>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
-    <body class="bg-gray-100 h-screen flex flex-col">
-        <!-- Umutwe w'urubuga -->
-        <header class="bg-indigo-600 text-white p-4 text-center font-bold text-xl shadow-md">
-            Ganira Chat App 💬
-        </header>
+    <body class="bg-gray-100 h-screen flex flex-col justify-between">
 
-        <!-- Aho ubutumwa bugaragara -->
-        <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 max-w-2xl mx-auto w-full">
-            <p class="text-gray-500 text-center">Gukurura ubutumwa...</p>
+        <!-- UMUGABANWA W'INDIRI / AUTH SCREEN -->
+        <div id="auth-container" class="flex items-center justify-center h-screen">
+            <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+                <h2 id="auth-title" class="text-2xl font-bold text-center text-indigo-600 mb-6">Injira muri Ganira</h2>
+                
+                <div id="error-msg" class="text-red-500 text-sm mb-4 text-center hidden"></div>
+
+                <form id="auth-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="email" class="w-full border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="password" class="w-full border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <button type="submit" id="auth-btn" class="w-full bg-indigo-600 text-white p-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Log In</button>
+                </form>
+
+                <p class="text-center text-sm text-gray-600 mt-4">
+                    <span id="switch-text">Nta konti ufite?</span> 
+                    <button onclick="toggleAuthMode()" id="switch-btn" class="text-indigo-600 font-bold hover:underline ml-1">Create Account</button>
+                </p>
+            </div>
         </div>
 
-        <!-- Akazu ko kwandikamo no kohereza -->
-        <div class="bg-white border-t p-4 shadow-lg">
-            <form id="chat-form" class="max-w-2xl mx-auto flex gap-2">
-                <input type="text" id="sender" placeholder="Izina ryawe..." class="border p-2 rounded-lg w-1/3 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                <input type="text" id="message" placeholder="Andika ubutumwa bwawe..." class="border p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Ohereza</button>
-            </form>
+        <!-- UMUGABANWA W'IKIGANIRO / CHAT SCREEN (Hakingwa kugeza ubwo winjiye) -->
+        <div id="chat-screen" class="hidden h-screen flex flex-col">
+            <header class="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md">
+                <h1 class="font-bold text-xl">Ganira Chat App 💬</h1>
+                <div>
+                    <span id="user-email-display" class="text-sm mr-4 bg-indigo-700 py-1 px-3 rounded-full"></span>
+                    <button onclick="logout()" class="bg-red-500 text-sm px-3 py-1 rounded hover:bg-red-600 transition">Sohoka</button>
+                </div>
+            </header>
+
+            <div id="messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 max-w-2xl mx-auto w-full">
+                <p class="text-gray-500 text-center">Gukurura ubutumwa...</p>
+            </div>
+
+            <div class="bg-white border-t p-4 shadow-lg">
+                <form id="chat-form" class="max-w-2xl mx-auto flex gap-2">
+                    <input type="text" id="message" placeholder="Andika ubutumwa bwawe..." class="border p-2 rounded-lg flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <button type="submit" class="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition">Ohereza</button>
+                </form>
+            </div>
         </div>
 
         <script>
+            let isLoginMode = true;
+            let currentUser = localStorage.getItem('ganira_user');
+
+            if (currentUser) {
+                showChatScreen(currentUser);
+            }
+
+            function toggleAuthMode() {
+                isLoginMode = !isLoginMode;
+                document.getElementById('auth-title').innerText = isLoginMode ? "Injira muri Ganira" : "Wiyandikishe kuri Ganira";
+                document.getElementById('auth-btn').innerText = isLoginMode ? "Log In" : "Create Account";
+                document.getElementById('switch-text').innerText = isLoginMode ? "Nta konti ufite?" : "Ubusanzwe ufite konti?";
+                document.getElementById('switch-btn').innerText = isLoginMode ? "Create Account" : "Log In";
+                document.getElementById('error-msg').classList.add('hidden');
+            }
+
+            document.getElementById('auth-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const endpoint = isLoginMode ? '/api/login' : '/api/signup';
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        localStorage.setItem('ganira_user', email);
+                        showChatScreen(email);
+                    } else {
+                        const errDiv = document.getElementById('error-msg');
+                        errDiv.innerText = data.error || "Habaye ikibazo";
+                        errDiv.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+
+            function showChatScreen(email) {
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('chat-screen').classList.remove('hidden');
+                document.getElementById('user-email-display').innerText = email;
+                fetchMessages();
+                setInterval(fetchMessages, 3000);
+            }
+
+            function logout() {
+                localStorage.removeItem('ganira_user');
+                location.reload();
+            }
+
             async function fetchMessages() {
                 try {
                     const response = await fetch('/api/messages');
@@ -79,7 +175,6 @@ app.get('/', async (req, res) => {
                             <span class="text-xs text-gray-400 block mt-1">\${new Date(msg.created_at).toLocaleTimeString()}</span>
                         </div>
                     \`).join('');
-                    
                     container.scrollTop = container.scrollHeight;
                 } catch (error) {
                     console.error('Ikosa:', error);
@@ -88,8 +183,8 @@ app.get('/', async (req, res) => {
 
             document.getElementById('chat-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const sender = document.getElementById('sender').value;
                 const message = document.getElementById('message').value;
+                const sender = localStorage.getItem('ganira_user');
 
                 await fetch('/api/messages', {
                     method: 'POST',
@@ -100,16 +195,48 @@ app.get('/', async (req, res) => {
                 document.getElementById('message').value = '';
                 fetchMessages();
             });
-
-            fetchMessages();
-            setInterval(fetchMessages, 3000); // igeza amakuru mashya buri masegonda 3
         </script>
     </body>
     </html>
   `);
 });
 
-// 2. API: Gusoma ubutumwa bwose buri muri Database (GET)
+// 2. API: SIGNUP (Kurema Konti)
+app.post('/api/signup', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Email na password birakenewe" });
+
+  try {
+    await db.execute({
+      sql: "INSERT INTO ganira_users (email, password) VALUES (?, ?)",
+      args: [email, password]
+    });
+    res.status(201).json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: "Iyi email yari isanzwe ikoreshwa cyangwa habaye ikibazo." });
+  }
+});
+
+// 3. API: LOGIN (Kwinjira)
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const result = await db.execute({
+      sql: "SELECT * FROM ganira_users WHERE email = ? AND password = ?",
+      args: [email, password]
+    });
+
+    if (result.rows.length > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "Email cyangwa password si byo." });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. API: GET MESSAGES
 app.get('/api/messages', async (req, res) => {
   try {
     const result = await db.execute("SELECT * FROM ganira_messages ORDER BY id ASC");
@@ -119,12 +246,10 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// 3. API: Kohereza ubutumwa bushya muri Database (POST)
+// 5. API: POST MESSAGE
 app.post('/api/messages', async (req, res) => {
   const { sender, message } = req.body;
-  if (!sender || !message) {
-    return res.status(400).json({ error: "Sender and message are required" });
-  }
+  if (!sender || !message) return res.status(400).json({ error: "Sender and message are required" });
 
   try {
     await db.execute({
@@ -137,10 +262,7 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-// Guhagarika server ku mibare isanzwe cyangwa kuri Vercel serverless
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port \${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 module.exports = app;
