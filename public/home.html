@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <title>Ganira - Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white min-h-screen pb-16">
+    <header class="sticky top-0 bg-black border-b border-neutral-800 p-4 flex justify-between items-center max-w-md mx-auto">
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">Ganira</h1>
+        <button onclick="localStorage.removeItem('ganira_user'); window.location.href='/'" class="text-xs text-red-400 font-bold">Sohoka</button>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-4">
+        <!-- Stories -->
+        <div class="border border-neutral-800 p-3 rounded-xl flex gap-3 overflow-x-auto" id="stories"></div>
+
+        <!-- Create Post -->
+        <div class="border border-neutral-800 p-3 rounded-xl space-y-2">
+            <textarea id="post-text" placeholder="Andika post yawe..." class="w-full bg-black border border-neutral-800 p-2 text-xs text-white rounded-lg resize-none"></textarea>
+            <button onclick="createPost()" class="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold">Post</button>
+        </div>
+
+        <!-- Feed -->
+        <div id="feed" class="space-y-3"></div>
+    </main>
+
+    <!-- Navigation Bar ziri Hasi -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-black border-t border-neutral-800 p-3 flex justify-around max-w-md mx-auto">
+        <a href="/home.html" class="text-purple-400 text-xs font-bold">🏠 Home</a>
+        <a href="/ai.html" class="text-neutral-500 text-xs font-bold">🤖 AI Mode</a>
+        <a href="/chat.html" class="text-neutral-500 text-xs font-bold">💬 Chat</a>
+    </nav>
+
+    <script>
+        const user = localStorage.getItem('ganira_user');
+        if (!user) window.location.href = '/';
+
+        async function loadFeed() {
+            const res = await fetch('/api/posts');
+            const posts = await res.json();
+            document.getElementById('feed').innerHTML = posts.map(p => `
+                <div class="border border-neutral-800 p-3 rounded-xl space-y-1">
+                    <span class="text-xs font-bold text-purple-400">@${p.author}</span>
+                    <p class="text-xs text-neutral-200">${p.content}</p>
+                </div>
+            `).join('');
+        }
+
+        async function createPost() {
+            const content = document.getElementById('post-text').value;
+            if(!content) return;
+            await fetch('/api/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author: user, content })
+            });
+            document.getElementById('post-text').value = '';
+            loadFeed();
+        }
+        loadFeed();
+    </script>
+</body>
+</html>
