@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <title>Ganira - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white h-screen flex items-center justify-center">
+    <div class="bg-[#121212] border border-neutral-800 p-8 rounded-2xl w-full max-w-sm space-y-5">
+        <h1 class="text-4xl font-bold text-center bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">Ganira</h1>
+        <div id="error-msg" class="text-red-400 text-xs text-center hidden"></div>
+        <form id="auth-form" class="space-y-3">
+            <input type="text" id="email" placeholder="Email cyangwa Username" class="w-full bg-black border border-neutral-800 p-3 rounded-xl text-xs text-white focus:outline-none" required>
+            <input type="password" id="password" placeholder="Password" class="w-full bg-black border border-neutral-800 p-3 rounded-xl text-xs text-white focus:outline-none" required>
+            <button type="submit" id="auth-btn" class="w-full bg-purple-600 text-white p-3 rounded-xl text-xs font-bold">Log In</button>
+        </form>
+        <p class="text-center text-xs text-neutral-400">Nta konti ufite? <a href="#" onclick="toggleMode()" id="switch-btn" class="text-pink-400 font-bold">Create Account</a></p>
+    </div>
+    <script>
+        let isLogin = true;
+        function toggleMode() {
+            isLogin = !isLogin;
+            document.getElementById('auth-btn').innerText = isLogin ? "Log In" : "Create Account";
+            document.getElementById('switch-btn').innerText = isLogin ? "Create Account" : "Log In";
+        }
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isLogin ? '/api/login' : '/api/signup';
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('ganira_user', email);
+                window.location.href = '/home.html';
+            } else {
+                const err = document.getElementById('error-msg');
+                err.innerText = data.error;
+                err.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
